@@ -1,118 +1,149 @@
-# RAG Chat & MCP Agent Stack
+# rag-mcp-stack
 
-gcube 멀티 컨테이너 환경에서 RAG 기반 챗봇 + MCP 파일 에이전트를 구성하는 커스텀 이미지 저장소입니다.
-
----
-
-## 구조
-
-```
-.
-├── webui/          # Open WebUI 커스텀 이미지 (로케일 + 백업 로직 내장)
-├── ollama/         # Ollama 커스텀 이미지 (모델 pull 스크립트 내장)
-├── mcp/            # MCP Agent 이미지 (mcpo 기반 파일시스템 서버)
-└── .github/
-    └── workflows/  # 이미지별 GHCR 빌드 워크플로우
-```
+Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스택입니다.
+단일 워크로드에 4개 컨테이너를 등록하고 `WEBUI_SECRET_KEY`만 설정하면 배포가 완료됩니다.
 
 ---
 
 ## 이미지 목록
 
-| 이미지 | 베이스 | 역할 |
-|---|---|---|
-| `ghcr.io/{org}/rag-webui:latest` | `open-webui/open-webui` | 사용자 UI (포트 8080) |
-| `ghcr.io/{org}/rag-ollama:latest` | `ollama/ollama` | LLM + 임베딩 서버 (포트 11434) |
-| `ghcr.io/{org}/rag-mcp:latest` | `python:3.11-slim` | MCP 파일 에이전트 (포트 8000) |
-| `qdrant/qdrant:latest` | — | 벡터 DB (포트 6333/6334) |
+| 이미지 | 베이스 | 포트 | 역할 |
+|---|---|---|---|
+| `ghcr.io/chaeyoon-08/rag-webui:latest` | open-webui `v0.6.5` | 8080 | 사용자 UI (Open WebUI) |
+| `ghcr.io/chaeyoon-08/rag-ollama:latest` | ollama `v0.20.2` | 11434 | LLM 및 임베딩 추론 서버 |
+| `qdrant/qdrant:v1.17.0` | 공식 이미지 | 6333 | 벡터 데이터베이스 |
+| `ghcr.io/chaeyoon-08/rag-mcp:latest` | python `3.11-slim` | 8000 | MCP 파일시스템 에이전트 |
 
-> qdrant는 공식 이미지를 직접 사용합니다.
-
----
-
-## 빌드 트리거
-
-각 이미지는 해당 디렉토리 변경 시 자동으로 빌드됩니다.
-
-- `webui/**` 변경 → `build-webui.yml` 실행
-- `ollama/**` 변경 → `build-ollama.yml` 실행
-- `mcp/**` 변경 → `build-mcp.yml` 실행
-
-`workflow_dispatch`로 수동 실행도 가능합니다.
+> 같은 워크로드 내 컨테이너는 `localhost`로 상호 통신합니다. 별도 네트워크 설정은 필요하지 않습니다.
 
 ---
 
-## 환경변수 (gcube 워크로드 설정 시)
+## 저장소 구조
 
-### rag-webui
-
-| KEY | VALUE |
-|---|---|
-| `DATA_DIR` | `/app/backend/data` |
-| `UPLOAD_DIR` | `/workplace/service_v1/uploads` |
-| `WEBUI_SECRET_KEY` | *(랜덤 문자열 생성)* |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` |
-| `QDRANT_URI` | `http://localhost:6333` |
-| `VECTOR_DB` | `qdrant` |
-| `DEFAULT_MODELS` | `llama3.1:8b` |
-| `RAG_EMBEDDING_ENGINE` | `ollama` |
-| `RAG_EMBEDDING_MODEL` | `nomic-embed-text` |
-| `RAG_EMBEDDING_CHUNK_SIZE` | `1000` |
-| `RAG_EMBEDDING_BATCH_SIZE` | `2` |
-| `ENABLE_RAG_WEB_SEARCH` | `true` |
-| `ENABLE_OCR` | `true` |
-| `OCR_ENGINE` | `tesseract` |
-| `OCR_LANG` | `kor+eng` |
-| `RAG_FAIL_ON_ERROR` | `false` |
-| `TIMEOUT` / `UPLOAD_TIMEOUT` | `3600` |
-| `OLLAMA_REQUEST_TIMEOUT` | `1800` |
-| `FILE_UPLOAD_MAX_SIZE` | `2147483648` |
-| `MAX_CONTENT_LENGTH` | `2147483648` |
-| `ENABLE_CHUNKED_UPLOAD` | `true` |
-
-### rag-ollama
-
-| KEY | VALUE |
-|---|---|
-| `OLLAMA_HOST` | `0.0.0.0` |
-| `OLLAMA_KEEP_ALIVE` | `5m` |
-| `OLLAMA_NUM_PARALLEL` | `4` |
-
-### rag-mcp
-
-| KEY | VALUE |
-|---|---|
-| `NODE_ENV` | `production` |
-
-### qdrant
-
-| KEY | VALUE |
-|---|---|
-| `QDRANT__SERVICE__GRPC_PORT` | `6334` |
-
----
-
-## MCP 설정 (mcp/config.json)
-
-`/workplace`를 파일시스템 루트로 노출합니다.
-gcube 개인 저장소를 `/workplace`에 마운트하면 MCP 에이전트가 해당 파일에 접근합니다.
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workplace"]
-    }
-  }
-}
+```
+├── webui/
+│   ├── Dockerfile          한국어 로케일, Tesseract OCR, 기본 환경변수 내장
+│   └── entrypoint.sh       시작 시 데이터 복구 → 백업 루프 → 서버 실행
+├── ollama/
+│   ├── Dockerfile          OLLAMA_MODELS 기본값 내장 (qwen3:8b, nomic-embed-text)
+│   └── pull_models.sh      서버 기동 후 OLLAMA_MODELS 목록을 순서대로 pull
+├── mcp/
+│   ├── Dockerfile          Node.js 22 + mcpo 설치, config.json 내장
+│   └── config.json         /workplace 경로를 MCP 파일시스템 도구로 노출
+└── .github/workflows/
+    ├── build-webui.yml     webui/ 변경 시 GHCR 자동 빌드
+    ├── build-ollama.yml    ollama/ 변경 시 GHCR 자동 빌드
+    └── build-mcp.yml       mcp/ 변경 시 GHCR 자동 빌드
 ```
 
 ---
 
-## Open WebUI에서 MCP 연동
+## 워크로드 등록
 
-1. 관리자 패널 → 설정 → 외부 도구 → 도구 서버 관리 `+`
-2. URL: `http://localhost:8000` (또는 MCP 컨테이너 외부 접속 URL)
-3. 이름: `Files_Agent`
-4. 저장 후 채팅에서 도구 선택하여 사용
+### 목적 스펙
+
+| 항목 | 값 |
+|---|---|
+| GPU | RTX 5070 Ti 이상 (VRAM 16GB 이상) |
+| 최소 CUDA | 12.8.0 (Blackwell sm_120 완전 지원) |
+| 공유 메모리 | 8GB |
+
+> 기본 모델(qwen3:8b + nomic-embed-text) 동시 로드 시 약 5.5GB 사용. RTX 5090(32GB)에서는 qwen3:14b 이상으로 업그레이드 가능합니다.
+
+---
+
+### 컨테이너 1 — rag-webui
+
+| 항목 | 값 |
+|---|---|
+| 저장소 유형 | GHCR |
+| 이미지 | `ghcr.io/chaeyoon-08/rag-webui:latest` |
+| 포트 | `8080` |
+
+**환경변수**
+
+| KEY | VALUE | 설명 |
+|---|---|---|
+| `WEBUI_SECRET_KEY` | *(직접 생성)* | JWT 암호화 키. 재배포 후 세션 유지를 위해 고정값이 필요합니다. `openssl rand -hex 32`로 생성하십시오. |
+
+**클라우드 저장소 마운트**
+
+| 클라우드 저장소 | 마운트 경로 |
+|---|---|
+| dropbox-storage | `/app/backend/data` |
+| dropbox-storage | `/workplace/service_v1/uploads` |
+
+---
+
+### 컨테이너 2 — rag-ollama
+
+| 항목 | 값 |
+|---|---|
+| 저장소 유형 | GHCR |
+| 이미지 | `ghcr.io/chaeyoon-08/rag-ollama:latest` |
+| 포트 | `11434` |
+
+**환경변수** — 없음
+
+> 기본 모델: `qwen3:8b,nomic-embed-text` (OLLAMA_MODELS 환경변수로 변경 가능)  
+> VRAM 24GB 이상 환경에서는 `qwen3:14b,nomic-embed-text` 사용을 권장합니다.
+
+**클라우드 저장소 마운트** — 없음
+
+---
+
+### 컨테이너 3 — qdrant
+
+| 항목 | 값 |
+|---|---|
+| 저장소 유형 | Docker Hub |
+| 이미지 | `qdrant/qdrant:v1.17.0` |
+| 포트 | `6333` |
+
+**환경변수** — 없음
+
+**클라우드 저장소 마운트**
+
+| 클라우드 저장소 | 마운트 경로 |
+|---|---|
+| dropbox-storage | `/qdrant/storage` |
+
+---
+
+### 컨테이너 4 — rag-mcp
+
+| 항목 | 값 |
+|---|---|
+| 저장소 유형 | GHCR |
+| 이미지 | `ghcr.io/chaeyoon-08/rag-mcp:latest` |
+| 포트 | `8000` |
+
+**환경변수** — 없음
+
+**클라우드 저장소 마운트**
+
+| 클라우드 저장소 | 마운트 경로 |
+|---|---|
+| dropbox-storage | `/workplace` |
+
+---
+
+## MCP 연동
+
+워크로드 배포 후 Open WebUI에서 MCP 에이전트를 등록합니다.
+
+관리자 패널 → 설정 → 외부 도구 → 도구 서버 `+`
+
+| 항목 | 값 |
+|---|---|
+| URL | `http://localhost:8000` |
+| 이름 | `Files_Agent` |
+
+등록 후 채팅 화면에서 `Files_Agent` 도구를 선택하면 `/workplace` 경로의 파일 조회, 읽기, 쓰기, 검색 기능을 사용할 수 있습니다.
+
+---
+
+## 배포 후 확인
+
+모델 다운로드(qwen3:8b 약 5.2GB)가 완료되기 전까지 채팅 모델 선택이 비활성화됩니다.  
+진행 상황은 rag-ollama 컨테이너 로그에서 확인할 수 있습니다.

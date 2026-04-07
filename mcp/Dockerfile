@@ -1,6 +1,13 @@
 FROM python:3.11-slim
 
-# mcpo: MCP-to-OpenAPI 프록시 (HTTP 기반 MCP 서버 래퍼)
+# Node.js 설치 (npx로 @modelcontextprotocol/server-filesystem 실행에 필요)
+RUN apt-get update -qq \
+ && apt-get install -y --no-install-recommends curl \
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+# mcpo: MCP stdio 서버를 OpenAPI HTTP 엔드포인트로 변환하는 프록시
 RUN pip install --no-cache-dir mcpo uv
 
 ENV NODE_ENV=production \
@@ -9,8 +16,9 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# config.json은 런타임에 볼륨 마운트로 제공
-# 기본 설정 파일은 config/config.json.example 참고
+# MCP 서버 설정 파일 복사
+COPY config.json /app/config/config.json
+
 EXPOSE 8000
 
 CMD ["uvx", "mcpo", "--host", "0.0.0.0", "--port", "8000", "--config", "/app/config/config.json"]
