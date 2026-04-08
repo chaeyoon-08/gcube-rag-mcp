@@ -65,7 +65,7 @@ rag-webui (8080)
 │   ├── entrypoint.sh       시작 시 DB 복원 → 10분 주기 DB 백업 → 서버 실행
 │   └── patch_files.py      FUSE SQLite db.refresh() 실패 패치 (빌드 시 적용)
 ├── ollama/
-│   ├── Dockerfile          OLLAMA_MODELS 기본값 내장 (qwen3:8b, nomic-embed-text)
+│   ├── Dockerfile          OLLAMA_MODELS 기본값 내장 (qwen3:8b, qwen3-embedding:8b)
 │   └── pull_models.sh      서버 기동 후 OLLAMA_MODELS 목록을 순서대로 pull
 ├── qdrant/
 │   ├── Dockerfile          qdrant v1.17.0 베이스, curl 설치, snapshot.sh 내장
