@@ -28,7 +28,7 @@ rag-webui (8080)
   │
   ├─── LLM 추론 / 임베딩 ──────► rag-ollama (11434)
   │                                    │
-  │                               nomic-embed-text (임베딩)
+  │                               qwen3-embedding:8b (임베딩)
   │                               qwen3:8b/14b (채팅)
   │
   ├─── 벡터 검색 / 저장 ──────► rag-qdrant (6333)
@@ -44,7 +44,7 @@ rag-webui (8080)
 
 **RAG 파이프라인 흐름:**
 1. 사용자가 문서를 업로드 → rag-webui가 수신
-2. rag-webui가 rag-ollama(`nomic-embed-text`)에 임베딩 요청
+2. rag-webui가 rag-ollama(`qwen3-embedding:8b`)에 임베딩 요청
 3. 임베딩 벡터를 rag-qdrant에 저장
 4. 채팅 시 질문을 임베딩 → rag-qdrant에서 유사 청크 검색
 5. 검색된 컨텍스트 + 질문을 rag-ollama(LLM)에 전달 → 응답 생성
@@ -91,8 +91,8 @@ rag-webui (8080)
 | 최소 CUDA | 12.8.0 (Blackwell sm_120 완전 지원) |
 | 공유 메모리 | 8GB |
 
-> 기본 모델(qwen3:8b + nomic-embed-text) 동시 로드 시 약 5.5GB 사용.
-> RTX 5090(32GB)에서는 `OLLAMA_MODELS=qwen3:14b,nomic-embed-text`로 업그레이드 가능합니다.
+> 기본 모델(qwen3:8b + qwen3-embedding:8b) 동시 로드 시 약 9.5GB 사용.
+> RTX 5090(32GB)에서는 `OLLAMA_MODELS=qwen3:14b,qwen3-embedding:8b`로 업그레이드 가능합니다.
 
 ---
 
