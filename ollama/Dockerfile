@@ -9,4 +9,4 @@ ENV OLLAMA_HOST=0.0.0.0 \
     OLLAMA_NUM_PARALLEL=4 \
     OLLAMA_MODELS=qwen3:8b,nomic-embed-text
 
-CMD ["/pull_models.sh"]
+ENTRYPOINT ["/pull_models.sh"]
