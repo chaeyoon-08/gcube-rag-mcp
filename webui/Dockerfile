@@ -52,4 +52,29 @@ ENV FILE_UPLOAD_MAX_SIZE=2147483648 \
 # ── WEBUI_SECRET_KEY 는 gcube 환경변수에서 반드시 직접 설정 ──────────────────
 # 미설정 시 재배포마다 JWT 토큰이 무효화되어 로그인 세션이 초기화됩니다.
 
+# ── FUSE(Dropbox) 마운트된 SQLite에서 db.refresh() 실패 패치 ─────────────────
+# SQLAlchemy의 db.refresh()는 FUSE 파일시스템에서 세션 내부 상태를 찾지 못해 실패함.
+# INSERT 후 db.refresh() 대신 db.expire() + db.get()으로 대체하여 안정적으로 조회.
+RUN python3 - <<'PYEOF'
+import re, pathlib
+
+target = pathlib.Path("/app/backend/open_webui/models/files.py")
+src = target.read_text()
+
+old = "            db.refresh(result)"
+new = (
+    "            try:\n"
+    "                db.refresh(result)\n"
+    "            except Exception:\n"
+    "                db.expire(result)\n"
+    "                result = db.get(File, result.id)"
+)
+
+if old in src:
+    target.write_text(src.replace(old, new, 1))
+    print("patch applied")
+else:
+    print("pattern not found — skipping patch")
+PYEOF
+
 # 커스텀 ENTRYPOINT 불필요 — 베이스 이미지 기본 시작 스크립트(/app/backend/start.sh) 그대로 사용
