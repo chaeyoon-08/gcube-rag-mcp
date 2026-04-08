@@ -59,4 +59,10 @@ ENV FILE_UPLOAD_MAX_SIZE=2147483648 \
 COPY patch_files.py /tmp/patch_files.py
 RUN python3 /tmp/patch_files.py && rm /tmp/patch_files.py
 
-# 커스텀 ENTRYPOINT 불필요 — 베이스 이미지 기본 시작 스크립트(/app/backend/start.sh) 그대로 사용
+# ── DB 백업/복원 엔트리포인트 ────────────────────────────────────────────────
+# /app/backend/data는 로컬 디스크에 유지 (FUSE 마운트 금지 — SQLite 손상 원인)
+# /db_backup (Dropbox 마운트)에 10분 주기로 DB 백업, 시작 시 복원
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
