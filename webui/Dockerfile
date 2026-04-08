@@ -28,9 +28,6 @@ ENV OLLAMA_BASE_URL=http://localhost:11434 \
     QDRANT_URI=http://localhost:6333 \
     VECTOR_DB=qdrant
 
-# ── 기본 모델 ────────────────────────────────────────────────────────────────
-ENV DEFAULT_MODELS=qwen3:8b
-
 # ── RAG 설정 ─────────────────────────────────────────────────────────────────
 ENV RAG_EMBEDDING_ENGINE=ollama \
     RAG_EMBEDDING_MODEL=nomic-embed-text \
