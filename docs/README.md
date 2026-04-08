@@ -9,7 +9,7 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 | 이미지 | 베이스 | 포트 | 역할 |
 |---|---|---|---|
-| `ghcr.io/chaeyoon-08/rag-webui:latest` | open-webui `v0.6.5` | 8080 | 사용자 UI (Open WebUI) |
+| `ghcr.io/chaeyoon-08/rag-webui:latest` | open-webui `v0.8.6` | 8080 | 사용자 UI (Open WebUI) |
 | `ghcr.io/chaeyoon-08/rag-ollama:latest` | ollama `v0.20.2` | 11434 | LLM 및 임베딩 추론 서버 |
 | `qdrant/qdrant:v1.17.0` | 공식 이미지 | 6333 | 벡터 데이터베이스 |
 | `ghcr.io/chaeyoon-08/rag-mcp:latest` | python `3.11-slim` | 8000 | MCP 파일시스템 에이전트 |
@@ -52,6 +52,21 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 ---
 
+### 클라우드 저장소 사전 준비
+
+배포 전 gcube 클라우드 저장소 2개를 등록합니다.
+
+| 저장소 역할 | 이름 예시 | 용도 |
+|---|---|---|
+| 공용 저장소 | `dropbox-storage` *(임의 지정)* | Open WebUI 데이터, 업로드 파일, MCP 파일시스템 |
+| Qdrant 전용 저장소 | `dropbox-storage-qdrant` *(임의 지정)* | Qdrant 벡터 DB 전용 (데이터 충돌 방지) |
+
+> **저장소 이름은 자유롭게 지정하십시오.** 이름은 gcube UI에서 선택하는 라벨이며 동작에 영향을 주지 않습니다. 중요한 것은 아래 각 컨테이너의 **마운트 경로**입니다.
+>
+> Qdrant는 내부적으로 `collections/` 디렉터리를 사용합니다. Open WebUI도 동일한 이름의 디렉터리를 사용하므로, 같은 저장소를 공유하면 데이터가 충돌할 수 있습니다. Qdrant는 반드시 별도 저장소를 사용하십시오.
+
+---
+
 ### 컨테이너 1 — rag-webui
 
 | 항목 | 값 |
@@ -70,8 +85,8 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 | 클라우드 저장소 | 마운트 경로 |
 |---|---|
-| dropbox-storage | `/app/backend/data` |
-| dropbox-storage | `/workplace/service_v1/uploads` |
+| 공용 저장소 *(이름 임의)* | `/app/backend/data` |
+| 공용 저장소 *(이름 임의)* | `/workplace/service_v1/uploads` |
 
 ---
 
@@ -106,7 +121,7 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 | 클라우드 저장소 | 마운트 경로 |
 |---|---|
-| dropbox-storage | `/qdrant/storage` |
+| Qdrant 전용 저장소 *(이름 임의)* | `/qdrant/storage` |
 
 ---
 
@@ -124,7 +139,7 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 | 클라우드 저장소 | 마운트 경로 |
 |---|---|
-| dropbox-storage | `/workplace` |
+| 공용 저장소 *(이름 임의)* | `/workplace` |
 
 ---
 
