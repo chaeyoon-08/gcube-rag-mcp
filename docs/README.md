@@ -11,7 +11,7 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 |---|---|---|---|
 | `ghcr.io/chaeyoon-08/rag-webui:latest` | open-webui `v0.8.6` | 8080 | 사용자 UI (Open WebUI) |
 | `ghcr.io/chaeyoon-08/rag-ollama:latest` | ollama `v0.20.2` | 11434 | LLM 및 임베딩 추론 서버 |
-| `qdrant/qdrant:v1.17.0` | 공식 이미지 | 6333 | 벡터 데이터베이스 |
+| `ghcr.io/chaeyoon-08/rag-qdrant:latest` | qdrant `v1.17.0` | 6333 | 벡터 데이터베이스 (스냅샷 자동 저장/복원) |
 | `ghcr.io/chaeyoon-08/rag-mcp:latest` | python `3.11-slim` | 8000 | MCP 파일시스템 에이전트 |
 
 > 같은 워크로드 내 컨테이너는 `localhost`로 상호 통신합니다. 별도 네트워크 설정은 필요하지 않습니다.
@@ -23,16 +23,20 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 ```
 ├── webui/
 │   ├── Dockerfile          한국어 로케일, Tesseract OCR, 기본 환경변수 내장
-│   └── entrypoint.sh       시작 시 데이터 복구 → 백업 루프 → 서버 실행
+│   └── patch_files.py      FUSE SQLite db.refresh() 실패 패치 (빌드 시 적용)
 ├── ollama/
 │   ├── Dockerfile          OLLAMA_MODELS 기본값 내장 (qwen3:8b, nomic-embed-text)
 │   └── pull_models.sh      서버 기동 후 OLLAMA_MODELS 목록을 순서대로 pull
+├── qdrant/
+│   ├── Dockerfile          qdrant v1.17.0 베이스, curl 설치, snapshot.sh 내장
+│   └── snapshot.sh         시작 시 스냅샷 복원 → 10분 주기 스냅샷 저장
 ├── mcp/
 │   ├── Dockerfile          Node.js 22 + mcpo 설치, config.json 내장
 │   └── config.json         /workplace 경로를 MCP 파일시스템 도구로 노출
 └── .github/workflows/
     ├── build-webui.yml     webui/ 변경 시 GHCR 자동 빌드
     ├── build-ollama.yml    ollama/ 변경 시 GHCR 자동 빌드
+    ├── build-qdrant.yml    qdrant/ 변경 시 GHCR 자동 빌드
     └── build-mcp.yml       mcp/ 변경 시 GHCR 자동 빌드
 ```
 
@@ -107,12 +111,12 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 ---
 
-### 컨테이너 3 — qdrant
+### 컨테이너 3 — rag-qdrant
 
 | 항목 | 값 |
 |---|---|
-| 저장소 유형 | Docker Hub |
-| 이미지 | `qdrant/qdrant:v1.17.0` |
+| 저장소 유형 | GHCR |
+| 이미지 | `ghcr.io/chaeyoon-08/rag-qdrant:latest` |
 | 포트 | `6333` |
 
 **환경변수** — 없음
@@ -121,7 +125,12 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 | 클라우드 저장소 | 마운트 경로 |
 |---|---|
-| Qdrant 전용 저장소 *(이름 임의)* | `/qdrant/storage` |
+| Qdrant 전용 저장소 *(이름 임의)* | `/snapshots` |
+
+> Qdrant는 FUSE 기반 Dropbox에 직접 스토리지를 마운트하면 `Input/output error`로 실패합니다.
+> 대신 10분 주기로 스냅샷 파일(`.snapshot`)을 생성해 `/snapshots`에 저장하고,
+> 재배포 시 해당 파일로 컬렉션을 자동 복원합니다.
+> 재배포와 마지막 스냅샷 사이에 추가된 파일은 재업로드가 필요합니다.
 
 ---
 
