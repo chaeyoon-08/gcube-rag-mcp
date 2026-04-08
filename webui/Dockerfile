@@ -30,7 +30,7 @@ ENV OLLAMA_BASE_URL=http://localhost:11434 \
 
 # ── RAG 설정 ─────────────────────────────────────────────────────────────────
 ENV RAG_EMBEDDING_ENGINE=ollama \
-    RAG_EMBEDDING_MODEL=nomic-embed-text \
+    RAG_EMBEDDING_MODEL=qwen3-embedding:8b \
     RAG_EMBEDDING_CHUNK_SIZE=1000 \
     RAG_EMBEDDING_BATCH_SIZE=2 \
     RAG_FAIL_ON_ERROR=false \
