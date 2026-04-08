@@ -1,9 +1,7 @@
 # rag-mcp-stack
 
 Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스택입니다.
-단일 워크로드에 4개 컨테이너를 등록하고 `WEBUI_SECRET_KEY`만 설정하면 배포가 완료됩니다.
-
-배포 방법 및 테스트 절차는 `docs/TUTORIAL.md`를 참고하십시오.
+gcube 플랫폼에 4개 컨테이너를 단일 워크로드로 배포합니다.
 
 ---
 
@@ -17,6 +15,45 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 | `ghcr.io/chaeyoon-08/rag-mcp:latest` | python `3.11-slim` | 8000 | MCP 파일시스템 에이전트 |
 
 > 같은 워크로드 내 컨테이너는 `localhost`로 상호 통신합니다. 별도 네트워크 설정은 필요하지 않습니다.
+
+---
+
+## 컨테이너 상호작용
+
+```
+사용자
+  │
+  ▼
+rag-webui (8080)
+  │
+  ├─── LLM 추론 / 임베딩 ──────► rag-ollama (11434)
+  │                                    │
+  │                               nomic-embed-text (임베딩)
+  │                               qwen3:8b/14b (채팅)
+  │
+  ├─── 벡터 검색 / 저장 ──────► rag-qdrant (6333)
+  │                                    │
+  │                               문서 임베딩 벡터 저장
+  │                               RAG 검색 쿼리 처리
+  │
+  └─── 파일시스템 도구 ────────► rag-mcp (8000)
+                                       │
+                                  /workplace 경로 읽기/쓰기
+                                  (MCP over HTTP)
+```
+
+**RAG 파이프라인 흐름:**
+1. 사용자가 문서를 업로드 → rag-webui가 수신
+2. rag-webui가 rag-ollama(`nomic-embed-text`)에 임베딩 요청
+3. 임베딩 벡터를 rag-qdrant에 저장
+4. 채팅 시 질문을 임베딩 → rag-qdrant에서 유사 청크 검색
+5. 검색된 컨텍스트 + 질문을 rag-ollama(LLM)에 전달 → 응답 생성
+
+**MCP 파이프라인 흐름:**
+1. 사용자가 채팅에서 Files_Agent 도구 활성화
+2. rag-webui가 rag-mcp(`http://localhost:8000`)에 도구 호출
+3. rag-mcp가 `/workplace`(Dropbox 마운트) 경로의 파일 조회/읽기/쓰기 수행
+4. 결과를 LLM 컨텍스트로 반환
 
 ---
 
@@ -36,10 +73,7 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 ├── mcp/
 │   ├── Dockerfile          Node.js 22 + mcpo 설치, config.json 내장
 │   └── config.json         /workplace 경로를 MCP 파일시스템 도구로 노출
-├── docs/
-│   ├── README.md           이 문서
-│   ├── TUTORIAL.md         gcube 배포 및 기능 테스트 튜토리얼
-│   └── test_document.pdf   RAG 테스트용 가상 문서
+├── docs/                   배포 튜토리얼, 테스트 문서 (git 미추적)
 └── .github/workflows/
     ├── build-webui.yml     webui/ 변경 시 GHCR 자동 빌드
     ├── build-ollama.yml    ollama/ 변경 시 GHCR 자동 빌드
@@ -64,24 +98,24 @@ Open WebUI + Ollama + Qdrant + MCP 기반 RAG 챗봇 및 파일 에이전트 스
 
 ## 주요 설계 결정
 
-### Qdrant 스냅샷 기반 영속성
+### gcube FUSE 저장소 제약
 
-gcube의 클라우드 저장소는 FUSE 기반입니다. Qdrant는 FUSE 경로에 스토리지를 직접 마운트하면 `Input/output error`로 실패합니다. 이를 우회하기 위해 커스텀 이미지(`rag-qdrant`)에서 아래 방식을 사용합니다.
-
-- Qdrant 스토리지는 컨테이너 **로컬 디스크**에 유지
-- 10분 주기로 스냅샷(`.snapshot` 파일)을 생성해 `/snapshots`(Dropbox 마운트)에 저장
-- 재배포 시 `snapshot.sh`가 `/snapshots`의 스냅샷 파일로 컬렉션 자동 복원
-- v1.17.0에서 스냅샷 생성 중 쓰기 블로킹이 제거되어 RAG 동작에 영향 없음
-
-> 재배포 시점과 마지막 스냅샷 사이(최대 10분)에 추가된 파일은 재업로드가 필요합니다.
+gcube의 영속 저장소(Dropbox, S3)는 모두 FUSE 기반입니다. FUSE는 SQLite가 필요로 하는 파일 락을 지원하지 않아 DB를 직접 마운트하면 손상됩니다. 이를 우회하기 위해 DB는 컨테이너 로컬 디스크에 두고, 백업 파일만 Dropbox에 저장합니다.
 
 ### Open WebUI DB 백업 기반 영속성
 
-gcube FUSE 저장소에 SQLite DB를 직접 마운트하면 파일 락 미지원으로 DB가 손상됩니다(`database disk image is malformed`). 이를 우회하기 위해 아래 방식을 사용합니다.
+- `/app/backend/data`(DB)는 컨테이너 **로컬 디스크** 유지 (마운트 없음)
+- 10분 주기로 Python `sqlite3.backup()` API로 `/db_backup`(Dropbox)에 저장
+- 재배포 시 `entrypoint.sh`가 자동 복원
+- `sqlite3.backup()`은 DB 사용 중에도 안전하게 동작
 
-- `/app/backend/data`(DB 경로)는 컨테이너 **로컬 디스크**에 유지 (마운트 없음)
-- 10분 주기로 Python `sqlite3.backup()` API를 사용해 `/db_backup`(Dropbox 마운트)에 저장
-- 재배포 시 `entrypoint.sh`가 `/db_backup/webui.db`로 자동 복원
-- `sqlite3.backup()`은 DB 사용 중에도 안전하게 동작 (서비스 중단 없음)
+> 재배포와 마지막 백업 사이(최대 10분)에 생성된 채팅/설정은 유실될 수 있습니다.
 
-> 재배포 시점과 마지막 백업 사이(최대 10분)에 생성된 채팅/설정은 유실될 수 있습니다.
+### Qdrant 스냅샷 기반 영속성
+
+- Qdrant 스토리지는 컨테이너 **로컬 디스크** 유지
+- 10분 주기로 스냅샷 파일을 `/snapshots`(Dropbox)에 저장
+- 재배포 시 `snapshot.sh`가 자동 복원
+- v1.17.0에서 스냅샷 생성 중 쓰기 블로킹 제거 — RAG 동작에 영향 없음
+
+> 재배포와 마지막 스냅샷 사이(최대 10분)에 추가된 파일은 재업로드가 필요합니다.
