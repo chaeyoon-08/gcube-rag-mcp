@@ -12,6 +12,7 @@ INTERVAL=600  # 10분
 # DB 복원
 restore_db() {
     mkdir -p /app/backend/data
+    mkdir -p /workplace/db_backup
 
     if [ -f "${BACKUP_PATH}" ]; then
         echo "[backup] Restoring DB from backup..."
