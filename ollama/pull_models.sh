@@ -12,19 +12,28 @@ until ollama list > /dev/null 2>&1; do
 done
 echo "[ollama] Server ready."
 
-# OLLAMA_MODELS 환경변수에서 모델 목록 읽기 (콤마 구분)
-if [ -z "${OLLAMA_MODELS:-}" ]; then
-    echo "[ollama] OLLAMA_MODELS not set — skipping model pull."
+# CHAT_MODELS: 채팅 모델 (콤마 구분, 먼저 pull → 드롭다운 상단에 표시)
+if [ -z "${CHAT_MODELS:-}" ]; then
+    echo "[ollama] CHAT_MODELS not set — skipping chat model pull."
 else
-    IFS=',' read -ra MODELS <<< "${OLLAMA_MODELS}"
+    IFS=',' read -ra MODELS <<< "${CHAT_MODELS}"
     for MODEL in "${MODELS[@]}"; do
         MODEL="$(echo "${MODEL}" | xargs)"  # 앞뒤 공백 제거
         if [ -n "${MODEL}" ]; then
-            echo "[ollama] Pulling model: ${MODEL}"
+            echo "[ollama] Pulling chat model: ${MODEL}"
             ollama pull "${MODEL}"
         fi
     done
-    echo "[ollama] All models pulled."
+    echo "[ollama] All chat models pulled."
+fi
+
+# EMBEDDING_MODEL: 임베딩 모델 (마지막에 pull → 드롭다운 하단에 표시)
+if [ -z "${EMBEDDING_MODEL:-}" ]; then
+    echo "[ollama] EMBEDDING_MODEL not set — skipping embedding model pull."
+else
+    echo "[ollama] Pulling embedding model: ${EMBEDDING_MODEL}"
+    ollama pull "${EMBEDDING_MODEL}"
+    echo "[ollama] Embedding model pulled."
 fi
 
 echo "[ollama] Server running (PID=${SERVER_PID})."
