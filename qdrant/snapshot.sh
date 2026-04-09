@@ -1,12 +1,12 @@
 #!/bin/bash
 # Qdrant 스냅샷 관리 스크립트
-# - 시작 시: /workplace/snapshots 에 저장된 스냅샷을 Qdrant로 복원
-# - 10분 주기: 모든 컬렉션 스냅샷을 /workplace/snapshots 에 저장
+# - 시작 시: /snapshots 에 저장된 스냅샷을 Qdrant로 복원
+# - 10분 주기: 모든 컬렉션 스냅샷을 /snapshots 에 저장
 
 set -euo pipefail
 
 QDRANT_URL="http://localhost:6333"
-SNAPSHOT_DIR="/workplace/snapshots"
+SNAPSHOT_DIR="/snapshots"
 INTERVAL=600  # 10분
 
 # Qdrant가 완전히 뜰 때까지 대기
