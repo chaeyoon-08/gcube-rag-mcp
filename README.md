@@ -38,7 +38,7 @@ rag-webui (8080)
   │
   └─── 파일시스템 도구 ────────► rag-mcp (8000)
                                        │
-                                  /workplace 경로 읽기/쓰기
+                                  /mcp_data 읽기/쓰기
                                   (MCP over HTTP)
 ```
 
@@ -52,7 +52,7 @@ rag-webui (8080)
 **MCP 파이프라인 흐름:**
 1. 사용자가 채팅에서 Files_Agent 도구 활성화
 2. rag-webui가 rag-mcp(`http://localhost:8000`)에 도구 호출
-3. rag-mcp가 `/workplace`(Dropbox 마운트) 경로의 파일 조회/읽기/쓰기 수행
+3. rag-mcp가 `/mcp_data`(Dropbox 마운트) 경로의 파일 조회/읽기/쓰기 수행
 4. 결과를 LLM 컨텍스트로 반환
 
 ---
@@ -72,7 +72,8 @@ rag-webui (8080)
 │   └── snapshot.sh         시작 시 스냅샷 복원 → 10분 주기 스냅샷 저장
 ├── mcp/
 │   ├── Dockerfile          Node.js 22 + mcpo 설치, config.json 내장
-│   └── config.json         /workplace 경로를 MCP 파일시스템 도구로 노출
+│   ├── entrypoint.sh       mcpo 서버 기동
+│   └── config.json         /mcp_data 경로를 MCP 파일시스템 도구로 노출
 ├── docs/                   배포 튜토리얼, 테스트 문서 (git 미추적)
 └── .github/workflows/
     ├── build-webui.yml     webui/ 변경 시 GHCR 자동 빌드

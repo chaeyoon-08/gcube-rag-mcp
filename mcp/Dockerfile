@@ -16,9 +16,10 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# MCP 서버 설정 파일 복사
 COPY config.json /app/config/config.json
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["uvx", "mcpo", "--host", "0.0.0.0", "--port", "8000", "--config", "/app/config/config.json"]
+ENTRYPOINT ["/entrypoint.sh"]
