@@ -12,7 +12,16 @@ until ollama list > /dev/null 2>&1; do
 done
 echo "[ollama] Server ready."
 
-# CHAT_MODELS: 채팅 모델 (콤마 구분, 먼저 pull → 드롭다운 상단에 표시)
+# EMBEDDING_MODEL: 임베딩 모델 (먼저 pull → Ollama 목록 하단에 표시)
+if [ -z "${EMBEDDING_MODEL:-}" ]; then
+    echo "[ollama] EMBEDDING_MODEL not set — skipping embedding model pull."
+else
+    echo "[ollama] Pulling embedding model: ${EMBEDDING_MODEL}"
+    ollama pull "${EMBEDDING_MODEL}"
+    echo "[ollama] Embedding model pulled."
+fi
+
+# CHAT_MODELS: 채팅 모델 (콤마 구분, 나중에 pull → Ollama 목록 상단에 표시)
 if [ -z "${CHAT_MODELS:-}" ]; then
     echo "[ollama] CHAT_MODELS not set — skipping chat model pull."
 else
@@ -25,15 +34,6 @@ else
         fi
     done
     echo "[ollama] All chat models pulled."
-fi
-
-# EMBEDDING_MODEL: 임베딩 모델 (마지막에 pull → 드롭다운 하단에 표시)
-if [ -z "${EMBEDDING_MODEL:-}" ]; then
-    echo "[ollama] EMBEDDING_MODEL not set — skipping embedding model pull."
-else
-    echo "[ollama] Pulling embedding model: ${EMBEDDING_MODEL}"
-    ollama pull "${EMBEDDING_MODEL}"
-    echo "[ollama] Embedding model pulled."
 fi
 
 echo "[ollama] Server running (PID=${SERVER_PID})."

@@ -30,8 +30,7 @@ ENV OLLAMA_BASE_URL=http://localhost:11434 \
     VECTOR_DB=qdrant
 
 # ── RAG 설정 ─────────────────────────────────────────────────────────────────
-ENV DEFAULT_MODELS=qwen3:8b \
-    RAG_EMBEDDING_ENGINE=ollama \
+ENV RAG_EMBEDDING_ENGINE=ollama \
     RAG_EMBEDDING_MODEL=qwen3-embedding:8b \
     RAG_EMBEDDING_CHUNK_SIZE=1000 \
     RAG_EMBEDDING_BATCH_SIZE=2 \
