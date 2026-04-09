@@ -1,4 +1,4 @@
-ARG BASE_VERSION=0.20.2
+ARG BASE_VERSION=0.20.4
 FROM ollama/ollama:${BASE_VERSION}
 
 COPY pull_models.sh /pull_models.sh

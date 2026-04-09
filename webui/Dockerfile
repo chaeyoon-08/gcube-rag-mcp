@@ -1,4 +1,4 @@
-ARG BASE_VERSION=v0.8.6
+ARG BASE_VERSION=v0.8.12
 FROM ghcr.io/open-webui/open-webui:${BASE_VERSION}
 
 # 한국어 로케일, 폰트, Tesseract OCR 설치

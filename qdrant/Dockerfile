@@ -1,4 +1,4 @@
-FROM qdrant/qdrant:v1.17.0
+FROM qdrant/qdrant:v1.17.1
 
 # curl 설치 (스냅샷 스크립트에서 Qdrant REST API 호출에 사용)
 USER root
