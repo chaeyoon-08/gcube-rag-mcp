@@ -1,12 +1,12 @@
 #!/bin/bash
 # Open WebUI DB 백업/복원 엔트리포인트
-# - 시작 시: /db_backup/webui.db → /app/backend/data/webui.db 복원
-# - 10분 주기: Python sqlite3 backup API로 안전하게 /db_backup에 저장
+# - 시작 시: /workplace/db_backup/webui.db → /app/backend/data/webui.db 복원
+# - 10분 주기: Python sqlite3 backup API로 안전하게 /workplace/db_backup에 저장
 
 set -euo pipefail
 
 DB_PATH="/app/backend/data/webui.db"
-BACKUP_PATH="/db_backup/webui.db"
+BACKUP_PATH="/workplace/db_backup/webui.db"
 INTERVAL=600  # 10분
 
 # DB 복원
