@@ -19,7 +19,8 @@ ENV LANG=ko_KR.UTF-8 \
 
 # ── 데이터 경로 ──────────────────────────────────────────────────────────────
 # DATA_DIR은 로컬 디스크 유지 (FUSE 마운트 금지 — SQLite 손상 원인), 기본값 그대로 사용
-# UPLOAD_DIR은 Dropbox 마운트 경로에 직접 씀
+# UPLOAD_DIR은 v0.8.6에서 env var를 읽지 않으므로 patch_files.py로 config.py를 패치해 활성화
+# 패치 후 이 값이 실제로 적용되어 업로드 파일이 Dropbox(/workplace/service_v1/uploads)에 저장됨
 ENV UPLOAD_DIR=/workplace/service_v1/uploads
 
 # ── Ollama / Qdrant 연결 (gcube 동일 워크로드 내 localhost 공유) ────────────
@@ -29,7 +30,8 @@ ENV OLLAMA_BASE_URL=http://localhost:11434 \
     VECTOR_DB=qdrant
 
 # ── RAG 설정 ─────────────────────────────────────────────────────────────────
-ENV RAG_EMBEDDING_ENGINE=ollama \
+ENV DEFAULT_MODELS=qwen3:8b \
+    RAG_EMBEDDING_ENGINE=ollama \
     RAG_EMBEDDING_MODEL=qwen3-embedding:8b \
     RAG_EMBEDDING_CHUNK_SIZE=1000 \
     RAG_EMBEDDING_BATCH_SIZE=2 \
