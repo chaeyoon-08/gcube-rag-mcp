@@ -18,8 +18,8 @@ ENV LANG=ko_KR.UTF-8 \
     PYTHONIOENCODING=utf-8
 
 # ── 데이터 경로 ──────────────────────────────────────────────────────────────
-# DATA_DIR은 dropbox-storage를 /app/backend/data 에 직접 마운트하므로 기본값 유지
-# UPLOAD_DIR은 dropbox-storage 마운트 경로에 직접 씀
+# DATA_DIR은 로컬 디스크 유지 (FUSE 마운트 금지 — SQLite 손상 원인), 기본값 그대로 사용
+# UPLOAD_DIR은 Dropbox 마운트 경로에 직접 씀
 ENV UPLOAD_DIR=/workplace/service_v1/uploads
 
 # ── Ollama / Qdrant 연결 (gcube 동일 워크로드 내 localhost 공유) ────────────
