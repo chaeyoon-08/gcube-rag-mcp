@@ -25,7 +25,6 @@ wait_for_qdrant() {
 
 # /snapshots 에 있는 .snapshot 파일을 컬렉션별로 복원
 restore_snapshots() {
-    mkdir -p "${SNAPSHOT_DIR}"
     echo "[snapshot] Checking for snapshots to restore in ${SNAPSHOT_DIR}..."
     local restored=0
 
@@ -61,7 +60,6 @@ restore_snapshots() {
 
 # 모든 컬렉션의 스냅샷을 생성하고 /snapshots 에 저장
 save_snapshots() {
-    mkdir -p "${SNAPSHOT_DIR}"
     # 컬렉션 목록 조회
     local collections_json
     collections_json=$(curl -sf "${QDRANT_URL}/collections" 2>/dev/null) || {
