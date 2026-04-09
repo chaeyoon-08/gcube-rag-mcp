@@ -1,5 +1,5 @@
 """
-Open WebUI v0.8.6 패치 스크립트
+Open WebUI v0.8.12 패치 스크립트
 
 [패치 1] open_webui/models/files.py
 - 목적: FUSE(Dropbox) 마운트 SQLite에서 db.refresh() 실패 시 fallback
@@ -61,7 +61,7 @@ target2 = pathlib.Path("/app/backend/open_webui/config.py")
 src2 = target2.read_text()
 
 old2 = (
-    "UPLOAD_DIR = DATA_DIR / \"uploads\"\n"
+    "UPLOAD_DIR = DATA_DIR / 'uploads'\n"
     "UPLOAD_DIR.mkdir(parents=True, exist_ok=True)"
 )
 new2 = (
